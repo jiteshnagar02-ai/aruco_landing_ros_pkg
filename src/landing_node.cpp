@@ -2,6 +2,9 @@
 #include <geometry_msgs/TwistStamped.h>
 #include <geometry_msgs/Pose.h>
 #include <mavros_msgs/SetMode.h>
+#include <tf/transform_datatypes.h>
+
+
 
 class LandingNode
 {
@@ -15,15 +18,21 @@ public:
 
     void poseCallback(const geometry_msgs::Pose &pose)
     {
+        double yaw_error = tf::getYaw(pose.orientation);
+
+        if(yaw_error<0.1) {
         cam_pose.twist.linear.x = -0.2 * pose.position.y;
         cam_pose.twist.linear.y = -0.2 * pose.position.x;
+        }
+        
+        cam_pose.twist.angular.z = -0.5 * yaw_error;
 
         if (abs(pose.position.x) < 0.09 && abs(pose.position.y) < 0.09)
         {
-            cam_pose.twist.linear.z = -0.1 * pose.position.z;
+            cam_pose.twist.linear.z = -0.09 * pose.position.z;
         }
 
-        if (abs(pose.position.z) < 1)
+        if (abs(pose.position.z) < 0.4)
         {
             publish = false ;
             mavros_msgs::SetMode mode;
@@ -56,7 +65,6 @@ public:
 private:
     ros::Publisher vel_pub;
     ros::Subscriber pose_sub;
-    ros::sub
     geometry_msgs::TwistStamped cam_pose;
     ros::Rate loop_rate;
     ros::ServiceClient modeChange;
